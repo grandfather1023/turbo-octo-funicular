@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="referrer" content="no-referrer">
+    <link rel="dns-prefetch" href="//127.0.0.1">
+
+    <!-- AdobePatentID="P5086-US" -->
+    <!-- AdobePatentID="P5087-US" -->
+
+    <title>CC Libraries</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" type="text/javascript"></script>
+    <template id="cc-libraries-template">
+        <div id="listContainer">
+            <library-list-view></library-list-view>
+        </div>
+
+        <div id="contentContainerWrapper">
+            <div id="contentContainer">
+                <library-contents-view></library-contents-view>
+            </div>
+        </div>
+    </template>
+    <script>
+        // Ok, so. This is clearly not how they are going to be doing their dynamic import, but this looks
+        // a lot more like the intended API than the previous implementation.
+        require.config({
+            paths: {
+                'ccLibraries': '//localhost:9000/main'
+            }
+        });
+
+        define('buffer', [], () => {});
+
+        require(['ccLibraries'], (librariesAPI) => {
+            const context = {
+                setRoute(route, component) {
+                    if (component === 'content') {
+                        document.querySelector('library-contents-view').setAttribute('route', route);
+                    }
+                },
+                setSelectionData({ panelInfo, availableActions, moreActions }) {
+                    const actionsContainer = document.getElementById('actions');
+                    actionsContainer.innerHTML = '';
+                    availableActions.forEach(a => {
+                        const frag = document.createDocumentFragment();
+                        const link = document.createElement('a');
+                        link.addEventListener('click', () => a.onClick());
+                        link.innerHTML = a.label;
+                        frag.appendChild(link);
+                        frag.appendChild(document.createElement('br'));
+                        actionsContainer.appendChild(frag);
+                    });
+
+                    const moreActionsContainer = document.getElementById('more-actions');
+                    moreActionsContainer.innerHTML = '';
+                    moreActions.forEach(a => {
+                        const frag = document.createDocumentFragment();
+                        const link = document.createElement('a');
+                        link.addEventListener('click', () => a.onClick());
+                        link.innerHTML = a.label;
+                        frag.appendChild(link);
+                        frag.appendChild(document.createElement('br'));
+                        moreActionsContainer.appendChild(frag);
+                    });
+                },
+                showContextMenu(position, menuItems) {
+                    console.log('showing context menu', position, menuItems);
+                }
+            };
+
+            librariesAPI.init(context, {
+                panelBackgroundColor: {
+                    color: { alpha: 255, green: 240, blue: 240, red: 240 }
+                }
+            }).then((payload) => {
+                const template = document.getElementById('cc-libraries-template');
+                document.getElementById('content').innerHTML = template.innerHTML;
+
+                document.querySelectorAll('.zoom-radio').forEach(el => {
+                    el.addEventListener('click', () => {
+                        payload['/libraries/*'].components.content.viewSettings.zoom.onChange(el.value);
+                    });
+                });
+            });
+        });
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #content {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+
+        #listContainer {
+            width: 300px;
+        }
+
+        #contentContainerWrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #contentContainer {
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        #debug {
+            position: fixed;
+            bottom: 32px;
+            left: 32px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="content">
+    </div>
+    <div id="debug">
+        D E B U G <br/>
+        <input type="radio" name="zoom" value="S" class="zoom-radio"> Small <br/>
+        <input type="radio" name="zoom" value="M" class="zoom-radio"> Medium <br/>
+        <input type="radio" name="zoom" value="L" class="zoom-radio" checked> Large <br/>
+        <br/>
+        A C T I O N S
+        <div id="actions"></div>
+        M O R E A C T I O N S
+        <div id="more-actions"></div>
+    </div>
+</body>
+</html>
